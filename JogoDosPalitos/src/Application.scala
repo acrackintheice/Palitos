@@ -242,11 +242,7 @@ object Application {
 
 	// Retorno uma lista com o número de palitos de cada jogador
 	def palitosDosJogadores( jogadores : List[Jogador]): List[Int] ={
-		var palitos = List[Int]()
-		for( jogador <- jogadores){
-			palitos = palitos :+ jogador.palitos
-		}
-		palitos
+		jogadores.map(jogador => jogador.palitos)
 	}
 
 	// Retiro o palito do jogador com ID igual ao valor do parametro 'ganhadorDaRodada'. Se o seu numero de palitos zerar
