@@ -1,40 +1,44 @@
-/**
- * Created by eduardo on 28/03/15.
- */
 
-import scala.collection.immutable.HashMap
+import scala.io.StdIn.readLine
 import scala.util.Random
 
 object Application {
 	def main(args: Array[String]) {
+		// SEMPRE sou o jogador número 1
 		val numeroDeJogadores = lerNumeroDeJogadores
-		começarRodada(criarJogadores(numeroDeJogadores), decidirQuemJogaPrimeiro(numeroDeJogadores))
+		// Começo a primeira rodada
+		começarRodada(criarJogadores(3,numeroDeJogadores), decidirQuemJogaPrimeiro(numeroDeJogadores))
 	}
 
-	// A maquina é sempre o jogador 0
+	// Começo uma nova rodada do jogo
 	def começarRodada(jogadores : List[Jogador], primeiroJogador : Int): Unit = {
 		jogadores.size match
 		{
-			case 1 => println("Acabou o jogo !")
+			case 1 =>
+				println("Jogador número "+jogadores.head.ID+" você ficou em último lugar, shame on you \n")
+				println("      #################")
+				println("      ## FIM DE JOGO ##")
+				println("      #################")
 			case _ =>
 				val numeroDeJogadores = jogadores.size
-				println("O número de palitos dos jogadores é: " + palitosDosJogadores(jogadores).mkString(", ") + "\n")
-				println("Começando a rodada!")
-				println("O primeiro a apostar será o jogador " + primeiroJogador)
-				val jogadas = iniciarMap
+				dizerInformacoesSobreARodada()
 				primeiroJogador match
 				{
 					case 1 =>
-						jogarPrimeiro
+						jogarPrimeiro()
 					case _ =>
-						jogar
+						jogar()
 				}
 
-				def jogarPrimeiro: Unit ={
-					pedirParaJogar
-					dizerAposta(apostaRandomica( jogadores ))
-					esperarFimDaRodada
-					dizerJogada(jogadaRandomica( jogadores(0).palitos ))
+
+				// Quando jogo primeiro não preciso esperar as informações sobre as apostas dos outros jogadores
+				def jogarPrimeiro(): Unit ={
+					val minhaJogada = jogadaRandomica( jogadores.head.palitos)
+					val minhaAposta = decidirAposta(jogadores, List(), minhaJogada)
+					pedirParaJogar()
+					dizerAposta(minhaAposta)
+					esperarFimDaRodada()
+					dizerJogada(minhaJogada)
 					val ganhadorDaRodada = perguntarQuemAcertou(numeroDeJogadores)
 					ganhadorDaRodada match
 					{
@@ -42,8 +46,7 @@ object Application {
 							começarRodada(jogadores, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
 						case _ =>
 							val jogadoresComPalitosAtualizados = retirarPalito(jogadores, ganhadorDaRodada)
-							val a = verificarSeAlguemFoiEliminado(jogadoresComPalitosAtualizados)
-							a match
+							verificarSeAlguemFoiEliminado(jogadoresComPalitosAtualizados) match
 							{
 								case -1 =>
 									começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
@@ -53,15 +56,17 @@ object Application {
 					}
 				}
 
-				def jogar: Unit = {
+				// Se eu não for o primeiro a jogar, primeiro preciso das informações sobre as apostas dos outros jogadores
+				// pra então fazer a minha aposta
+				def jogar(): Unit = {
 					val apostas = lerApostasDeCadaJogador(jogadores, primeiroJogador)
 					apostas.size match
 					{
 						case tamanho if tamanho > 0 =>
-							val minhaJogada = jogadaRandomica( jogadores(0).palitos )
-							val minhaAposta = jogadas.get( (jogadores(0).palitos :: jogadores(1).palitos :: apostas) :+ minhaJogada ).get
+							val minhaJogada = jogadaRandomica( jogadores.head.palitos )
+							val minhaAposta = decidirAposta(jogadores, apostas, minhaJogada)
 							dizerAposta(minhaAposta)
-							esperarFimDaRodada
+							esperarFimDaRodada()
 							dizerJogada(minhaJogada)
 							val ganhadorDaRodada = perguntarQuemAcertou(numeroDeJogadores)
 							ganhadorDaRodada match
@@ -70,23 +75,154 @@ object Application {
 									começarRodada(jogadores, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
 								case _ =>
 									val jogadoresComPalitosAtualizados = retirarPalito(jogadores, ganhadorDaRodada)
-									val a = verificarSeAlguemFoiEliminado(jogadoresComPalitosAtualizados)
-									a match
+									verificarSeAlguemFoiEliminado(jogadoresComPalitosAtualizados) match
 									{
 										case -1 =>
-											começarRodada(          jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
+											começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
 										case x =>
-											começarRodada(jogadoresComPalitosAtualizados.take(x) ++ jogadoresComPalitosAtualizados.drop(x+1), if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
+											começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
 									}
 							}
 						case _ =>
 							println( "Algo deu muito errado!")
 					}
 				}
+				def dizerInformacoesSobreARodada(): Unit =
+				{
+					println("O número de palitos dos jogadores é: " + palitosDosJogadores(jogadores).mkString(", ") + "\n")
+					println("Começando a rodada!")
+					println("O primeiro a apostar será o jogador " + primeiroJogador)
+				}
 		}
 	}
 
-	def pedirParaJogar: Unit ={
+	// Decido qual será minha aposta
+	def decidirAposta (jogadores : List[Jogador] , apostasDosOutros : List[Int], minhaJogada : Int): Int = {
+		val totalDePalitos : Int  = palitosDosJogadores( jogadores ).sum
+		val meusPalitos : Int = jogadores.head.palitos
+		apostasDosOutros.size match
+		{
+			case x if x <= jogadores.size & x > 0 =>
+				// Se eu não for o primeiro a apostar então:
+				val rand : Random = new Random()
+				// quanto mais jogadores apostarem depois de mim, maior será a minha chance de blefar
+				val chanceDeBlefe : Double = apostasDosOutros.size.toDouble / jogadores.size.toDouble-1
+				rand.nextDouble > chanceDeBlefe match
+				{
+					case true  =>
+						def blefarPraCima : Int = {
+							val minhaAposta = (gerarPorcentagemMaiorQue(0.7)*totalDePalitos).toInt
+							apostasDosOutros.contains( minhaAposta ) match
+							{
+								case false =>
+									rand.nextDouble() match
+									{
+										case randomDouble if randomDouble > 0.5 => minhaAposta
+										case _ => minhaAposta+1
+									}
+								case true  => blefarPraCima
+
+							}
+						}
+						def blefarPraBaixo : Int = {
+							val minhaAposta = (gerarPorcentagemMenorQue(0.30)*totalDePalitos).toInt
+							apostasDosOutros.contains( minhaAposta ) match
+							{
+								case false =>
+									rand.nextDouble() match
+									{
+										case randomDouble if randomDouble > 0.5 => minhaAposta
+										case _ => minhaAposta+1
+									}
+								case true  => blefarPraBaixo
+
+							}
+						}
+						def blefarPraCimaOuPraBaixo : Int = {
+							rand.nextDouble() match
+							{
+								// 50% de chance de blefar
+								case x2 if x2 < 0.5 =>
+									blefarPraCima
+								// 50% de chance de blefar pra baixo
+								case x2 if x2 > 0.5 =>
+									blefarPraBaixo
+							}
+						}
+						minhaJogada match
+						{
+							case 0 =>
+								// Se eu joguei 0 blefo, fingindo que joguei bastante
+								blefarPraCima
+							case x1 if x1 > (meusPalitos*0.7).toInt =>
+								// Se joguei mais que 70% dos meus palitos, vou fingir que joguei pouco
+								blefarPraBaixo
+							case x1 if x1 < (meusPalitos*0.3).toInt =>
+								// Se joguei menos que 30% dos meus palitos, vou fingir que joguei bastante
+								(gerarPorcentagemMaiorQue(0.70)*totalDePalitos).toInt
+							case _ =>
+								// Caso tenha jogado um número de palitos entre 30% e 70% dos meus palitos, posso fingir que joguei pouco ou bastante
+								blefarPraCimaOuPraBaixo
+						}
+					case false =>
+						// Quando não blefo faço uma jogada randomica
+						apostaRandomica( jogadores, minhaJogada, apostasDosOutros)
+
+				}
+			case 0 =>
+				// Se eu for o primeiro a apostar faço uma aposta randomica
+				apostaRandomica( jogadores, minhaJogada, apostasDosOutros)
+			case _ =>
+				// Se por algum motivo for outra coisa ocorreu um erro então retorno -1
+				-1
+		}
+	}
+
+	// Faço uma aposta randomica. OBS: Mesmo sendo randômica a jogada sempre é valida ... não apostaria 0 sendo que joguei 1 palito
+	def apostaRandomica(jogadores : List[Jogador], minhaJogada : Int,apostasDosOutros : List[Int]) : Int =  {
+		val rand = new Random
+		// Total de palitos dos outros jogadores + minha jogada
+		val totalDePalitos : Int = palitosDosJogadores( jogadores.tail ).sum + minhaJogada
+		val minhaAposta = rand.nextInt(totalDePalitos-minhaJogada+1)+minhaJogada
+		apostasDosOutros.contains( minhaAposta ) match
+		{
+			case false => minhaAposta
+			case true  => apostaRandomica(jogadores, minhaJogada,apostasDosOutros)
+		}
+	}
+
+	// Jogo um numero X de palitos sendo que -1 < X <= meusPalitos
+	def jogadaRandomica( palitos : Int ): Int ={
+		val rand = new Random
+		rand.nextInt(palitos+1)
+	}
+
+	// Gero uma porcentagem menos que o double passado como parametro ... se 0.30 for passado como parametro retornarei
+	// um double x tal que 0 < X < 0.30
+	def gerarPorcentagemMenorQue( quanto : Double ): Double =
+	{
+		val rand = new Random
+		rand.nextDouble() match
+		{
+			case x if x < quanto => x
+			case _ => gerarPorcentagemMaiorQue( quanto )
+		}
+	}
+
+	// Gero uma porcentagem maior que o double passado como parametro ... se 0.70 for passado como parametro retornarei
+	// um double x tal que 0.30 < X <= 1.0
+	def gerarPorcentagemMaiorQue( quanto : Double ): Double =
+	{
+		val rand = new Random
+		rand.nextDouble() match
+		{
+			case x if x > quanto => x
+			case _ => gerarPorcentagemMaiorQue( quanto )
+		}
+	}
+
+	// Fico pedindo pra jogar até alguem responder 'sim'
+	def pedirParaJogar(): Unit ={
 		try {
 			var resposta = "nao"
 			while( resposta != "sim"){
@@ -100,6 +236,7 @@ object Application {
 		}
 	}
 
+	// Verifico se algum jogador está com 0 palitos (foi eliminado)
 	def verificarSeAlguemFoiEliminado(jogadores : List[Jogador], index : Int = 0): Int ={
 		jogadores.head.palitos match
 		{
@@ -113,6 +250,7 @@ object Application {
 		}
 	}
 
+	// Retorno uma lista com o número de palitos de cada jogador
 	def palitosDosJogadores( jogadores : List[Jogador]): List[Int] ={
 		var palitos = List[Int]()
 		for( jogador <- jogadores){
@@ -121,15 +259,34 @@ object Application {
 		palitos
 	}
 
-	def retirarPalito(jogadores : List[Jogador], ganhadorDaRodada : Int, novosJogadores : List[Jogador] = List()) : List[Jogador] ={
-		novosJogadores.size match
+	// Retiro o palito do jogador com ID igual ao valor do parametro 'ganhadorDaRodada'. Se o seu numero de palitos zerar
+	// ele é removido do jogo
+	def retirarPalito(jogadores : List[Jogador], ganhadorDaRodada : Int) : List[Jogador] ={
+		val lista = jogadores.filter( jogador => jogador.ID == ganhadorDaRodada.toString)
+		lista.size match
 		{
-			case x if x == ganhadorDaRodada-1 => retirarPalito(jogadores, ganhadorDaRodada, novosJogadores :+ new Jogador(jogadores(x).palitos-1, jogadores(x).ID))
-			case x if x < jogadores.size => retirarPalito(jogadores,ganhadorDaRodada,novosJogadores :+ jogadores(x))
-			case _ => novosJogadores
+			case 1 =>
+				// Caso a lista possui apenas um elemento
+				lista.head.palitos match
+				{
+					case 0 =>
+						// Retorno a lista sem o jogador, pois ele ficou com 0 palitos
+						val index = jogadores.indexOf( lista.head )
+						jogadores.take(index) ++ jogadores.drop(index+1)
+					case numeroDePalitos if numeroDePalitos > 0 =>
+						// Retorno uma nova lista de jogador praticamente igual outra mas onde o ganhador da rodada possui um palito a menos
+						val index = jogadores.indexOf( lista.head )
+						(jogadores.take(index) :+ new Jogador(lista.head.palitos-1, lista.head.ID)) ++ jogadores.drop(index+1)
+				}
+			case _ =>
+				// Caso a lista possua mais de um elemento ( O que nunca deve acontecer a não ser que 2 ou mais jogadores possuem o mesmo nome)
+				// Retorno uma lista vazia
+				List()
 		}
+
 	}
 
+	// Fico perguntando se a rodada já acabou até alguem inserir o indice do ganhador ou 0 caso ngm tenha acertado
 	def perguntarQuemAcertou(numeroDeJogadores : Int) : Int ={
 		try {
 			val input = readLine("Se alguem acertou o número de palitos informe o número desse jogador, se ninguem acertou digite 0 \n")
@@ -151,15 +308,18 @@ object Application {
 		}
 	}
 
+	// Digo qual foi minha jogada
 	def dizerJogada( jogada : Int ): Unit ={
 		println("Minha jogada é: " + jogada)
 	}
 
+	// Digo qual foi minha aposta
 	def dizerAposta( aposta : Int): Unit ={
 		println("Minha aposta é: "+aposta)
 	}
 
-	def esperarFimDaRodada: Unit ={
+	// Fico perguntado se a rodada já acabou até alguem responder 'sim'
+	def esperarFimDaRodada(): Unit ={
 		try {
 			var resposta = "nao"
 			while( resposta != "sim"){
@@ -173,26 +333,12 @@ object Application {
 		}
 	}
 
-	def apostaRandomica(jogadores : List[Jogador]) : Int =  {
-		val rand = new Random
-		var totalDePalitos = 0
-		for ( jogador <- jogadores){
-			totalDePalitos = totalDePalitos + jogador.palitos
-		}
-		rand.nextInt( totalDePalitos+1 )
-	}
-
-	def jogadaRandomica( palitos : Int ): Int ={
-		val rand = new Random
-		rand.nextInt(palitos+1)
-	}
-
 	// Cria uma lista com com uma entrada pra cada jogador com valor 3, que representa o número inicial de palitos
-	def criarJogadores(numeroDeJogadores: Int, index : Int = 0, listaDeJogadores: List[Jogador] = List()): List[Jogador] = {
+	def criarJogadores(numeroDePalitos : Int, numeroDeJogadores: Int, index : Int = 0, listaDeJogadores: List[Jogador] = List()): List[Jogador] = {
 		index match
 		{
 			case x if x >= numeroDeJogadores => listaDeJogadores
-			case _ => criarJogadores( numeroDeJogadores, index+1, listaDeJogadores :+ new Jogador(2,(index+1).toString))
+			case _ => criarJogadores(numeroDePalitos, numeroDeJogadores, index+1, listaDeJogadores :+ new Jogador(numeroDePalitos,(index+1).toString))
 		}
 	}
 
@@ -203,10 +349,10 @@ object Application {
 	}
 
 
-	// Lê as apostas dos jogadores que jogam antes do computador do console
+	// Lêio as apostas dos jogadores que jogam antes do computador
 	def lerApostasDeCadaJogador(jogadores : List[Jogador], primeiroJogador: Int): List[Int] = {
 
-		// Encontra os jogadores que jogam antes da maquina e retorna uma lista com seus IDS
+		// Encontro os jogadores que jogam antes da maquina e retorno uma lista com seus IDS
 		def quemJogaAntesDaMaquina (lista: List[String] = List(), index : Int = 0): List[String] = {
 			index+1 match {
 				case x if x < primeiroJogador =>
@@ -217,36 +363,45 @@ object Application {
 					lista
 			}
 		}
-
-		val apostadores = quemJogaAntesDaMaquina()
-		apostadores.size match {
-			case 0 =>
-				List()
-			case _ =>
-				val input = readLine("O(s) jogadore(s) - " + apostadores.mkString(", ")  + " - joga(m) antes do computador. Informe sua(s) aposta(s) no formato <a1,a2,..,ai>, começando com o jogador de número mais baixo: \n")
-				input.split(",").length match {
-					case x if x == apostadores.size =>
-						val listaDeApostas = input.split(",").toList.map(x => x.toInt)
-						listaDeApostas.size match {
-							case 1 =>
-								listaDeApostas
-							case _ =>
-								listaDeApostas.distinct.size match {
-									case x if x == listaDeApostas.size =>
-										listaDeApostas
-									case _ =>
-										println("Não são aceitas apostas repetidas, vamos denovo")
-										lerApostasDeCadaJogador(jogadores, primeiroJogador)
-								}
-						}
-					case _ =>
-						println("Os dados inseridos estavam incorretos, vamos denovo")
-						lerApostasDeCadaJogador(jogadores, primeiroJogador)
-				}
+		try {
+			val apostadores = quemJogaAntesDaMaquina()
+			apostadores.size match {
+				case 0 =>
+					List()
+				case _ =>
+					val input = readLine("O(s) jogadore(s) - " + apostadores.mkString(", ") + " - joga(m) antes do computador. Informe sua(s) aposta(s) no formato <a1,a2,..,ai>, começando com o jogador de número mais baixo: \n")
+					input.split(",").length match {
+						case x if x == apostadores.size =>
+							val listaDeApostas = input.split(",").toList.map(x => x.toInt)
+							listaDeApostas.size match {
+								case 1 =>
+									listaDeApostas
+								case _ =>
+									listaDeApostas.distinct.size match {
+										case y if y == listaDeApostas.size =>
+											listaDeApostas
+										case _ =>
+											println("Não são aceitas apostas repetidas, vamos denovo")
+											lerApostasDeCadaJogador(jogadores, primeiroJogador)
+									}
+							}
+						case _ =>
+							println("Os dados inseridos estavam incorretos, vamos denovo")
+							lerApostasDeCadaJogador(jogadores, primeiroJogador)
+					}
+			}
+		}
+		catch {
+			case nfe: NumberFormatException =>
+				println("Você deve inserir um número")
+				lerApostasDeCadaJogador(jogadores, primeiroJogador)
+			case npe: NullPointerException =>
+				println("Você deve inserir um número")
+				lerApostasDeCadaJogador(jogadores, primeiroJogador)
 		}
 	}
 
-	// Lê do console o número de jogadores que irão jogar
+	// Lêio do console o número de jogadores que irão jogar
 	def lerNumeroDeJogadores: Int = {
 		try {
 			val input = readLine("Informe o número de jogadores: \n")
@@ -266,50 +421,5 @@ object Application {
 				println("Você deve inserir um número")
 				lerNumeroDeJogadores
 		}
-	}
-
-	def iniciarMap  = {
-		HashMap(
-			List(1, 1, 0, 0) -> 1,
-			List(1, 1, 0, 1) -> 1,
-			List(1, 1, 1, 0) -> 0,
-			List(1, 1, 1, 1) -> 2,
-			List(1, 1, 2, 0) -> 1,
-			List(1, 1, 2, 1) -> 1,
-			List(1, 2, 0, 0) -> 1,
-			List(1, 2, 0, 1) -> 1,
-			List(1, 2, 1, 0) -> 0,
-			List(1, 2, 1, 1) -> 2,
-			List(1, 2, 2, 0) -> 1,
-			List(1, 2, 2, 1) -> 3,
-			List(1, 2, 3, 0) -> 2,
-			List(1, 2, 3, 1) -> 2,
-			List(2, 1, 0, 0) -> 1,
-			List(2, 1, 0, 1) -> 1,
-			List(2, 1, 0, 2) -> 2,
-			List(2, 1, 1, 0) -> 0,
-			List(2, 1, 1, 1) -> 2,
-			List(2, 1, 1, 2) -> 3,
-			List(2, 1, 2, 0) -> 1,
-			List(2, 1, 2, 1) -> 3,
-			List(2, 1, 2, 2) -> 3,
-			List(2, 1, 3, 0) -> 2,
-			List(2, 1, 3, 1) -> 2,
-			List(2, 1, 3, 2) -> 2,
-			List(2, 2, 0, 0) -> 1,
-			List(2, 2, 0, 1) -> 1,
-			List(2, 2, 0, 2) -> 2,
-			List(2, 2, 1, 0) -> 0,
-			List(2, 2, 1, 1) -> 2,
-			List(2, 2, 1, 2) -> 2,
-			List(2, 2, 2, 0) -> 1,
-			List(2, 2, 2, 1) -> 3,
-			List(2, 2, 2, 2) -> 3,
-			List(2, 2, 3, 0) -> 2,
-			List(2, 2, 3, 1) -> 2,
-			List(2, 2, 3, 2) -> 4,
-			List(2, 2, 4, 0) -> 3,
-			List(2, 2, 4, 1) -> 3,
-			List(2, 2, 4, 2) -> 3)
 	}
 }
