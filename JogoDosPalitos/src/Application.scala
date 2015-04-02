@@ -1,9 +1,10 @@
 
-import scala.io.StdIn.readLine
 import scala.util.Random
 
 object Application {
 	def main(args: Array[String]) {
+		println("\n\n***********************************************************************************************************")
+
 		// SEMPRE sou o jogador número 1
 		val numeroDeJogadores = lerNumeroDeJogadores
 		// Começo a primeira rodada
@@ -36,6 +37,7 @@ object Application {
 					val minhaJogada = jogadaRandomica( jogadores.head.palitos)
 					val minhaAposta = decidirAposta(jogadores, List(), minhaJogada)
 					pedirParaJogar()
+					pedirPraMostrarAposta()
 					dizerAposta(minhaAposta)
 					esperarFimDaRodada()
 					dizerJogada(minhaJogada)
@@ -65,6 +67,7 @@ object Application {
 						case tamanho if tamanho > 0 =>
 							val minhaJogada = jogadaRandomica( jogadores.head.palitos )
 							val minhaAposta = decidirAposta(jogadores, apostas, minhaJogada)
+							pedirPraMostrarAposta()
 							dizerAposta(minhaAposta)
 							esperarFimDaRodada()
 							dizerJogada(minhaJogada)
@@ -89,12 +92,10 @@ object Application {
 				}
 				def dizerInformacoesSobreARodada(): Unit =
 				{
-					println("                          Começando uma nova rodada                                             ")
-					println("***********************************************************************************************************")
+					println("Começando uma nova rodada                                            \n")
 					println("Status dos jogadores:")
-					jogadores.foreach( jogador => println("Jogador "+ jogador.ID + " -> "+jogador.palitos+" palitos"))
-					println("***********************************************************************************************************")
-					println("Primeiro a jogar -> Jogador " + primeiroJogador)
+					jogadores.foreach( jogador => println("Jogador "+ jogador.ID + " => "+jogador.palitos+" palitos"))
+					println("\nPrimeiro a jogar => Jogador " + primeiroJogador)
 					println("***********************************************************************************************************")
 				}
 		}
@@ -279,14 +280,13 @@ object Application {
 		try {
 			var resposta = "nao"
 			while( resposta != "sim"){
-				resposta = readLine("Nesta rodada quem eu sou o primeiro a jogar, todos já colocaram os palitos? Posso começar a rodada? \tR: ")
-				println("-----------------------------------------------------------------------------------------------------------")
+				resposta = readLine("Nesta rodada eu sou o primeiro a jogar, todos já fizeram suas jogadas? Posso começar a rodada? \tR: ")
+				print("\n")
 			}
 		}
 		catch {
 			case npe: NullPointerException =>
-				println("Diga <sim>")
-				println("-----------------------------------------------------------------------------------------------------------")
+				println("Diga <sim>"+ "\n")
 				lerNumeroDeJogadores
 		}
 	}
@@ -295,39 +295,50 @@ object Application {
 	def perguntarQuemAcertou(numeroDeJogadores : Int) : Int ={
 		try {
 			val input = readLine("Se alguem acertou o número de palitos informe o número desse jogador. Se ninguem acertou digite 0: \tR: ")
-			println("***********************************************************************************************************")
+			print("\n")
+			println("*********************************************************************************************************** ")
 			input.toInt match {
 				case x if x >= 0 | x <= numeroDeJogadores =>
 					input.toInt
 				case _ =>
-					println("Você deve inserir um numero positivo positivo")
-					println("-----------------------------------------------------------------------------------------------------------")
+					println("Você deve inserir um numero positivo positivo"+ "\n")
 					perguntarQuemAcertou(numeroDeJogadores)
 			}
 		}
 		catch {
 			case nfe: NumberFormatException =>
-				println("Você deve inserir um número")
-				println("-----------------------------------------------------------------------------------------------------------")
+				println("Você deve inserir um número"+ "\n")
 				perguntarQuemAcertou(numeroDeJogadores)
 			case npe: NullPointerException =>
-				println("Você deve inserir um número")
-				println("-----------------------------------------------------------------------------------------------------------")
+				println("Você deve inserir um número"+ "\n")
 				perguntarQuemAcertou(numeroDeJogadores)
 		}
 	}
 
 	// Digo qual foi minha jogada
 	def dizerJogada( jogada : Int ): Unit ={
-		println("Minha jogada é: " + jogada)
-		println("-----------------------------------------------------------------------------------------------------------")
+		println("Minha jogada é: " + jogada + "\n")
 	}
 
 	// Digo qual foi minha aposta
 	def dizerAposta( aposta : Int): Unit ={
-		println("Está na minha vez de apostar!")
-		println("Minha aposta é: "+aposta)
-		println("-----------------------------------------------------------------------------------------------------------")
+		println("Minha aposta é: "+aposta + "\n")
+	}
+
+	// Fico perguntado se a rodada já acabou até alguem responder 'sim'
+	def pedirPraMostrarAposta(): Unit ={
+		try {
+			var resposta = "nao"
+			while( resposta != "sim"){
+				resposta = readLine("Posso mostrar minha aposta? \tR: ")
+				print("\n")
+			}
+		}
+		catch {
+			case npe: NullPointerException =>
+				println("Diga <sim>"+ "\n")
+				lerNumeroDeJogadores
+		}
 	}
 
 	// Fico perguntado se a rodada já acabou até alguem responder 'sim'
@@ -335,14 +346,13 @@ object Application {
 		try {
 			var resposta = "nao"
 			while( resposta != "sim"){
-				resposta = readLine("Posso mostrar meus palitos? \tR: ")
-				println("-----------------------------------------------------------------------------------------------------------")
+				resposta = readLine("Posso mostrar minha jogada? \tR: ")
+				print("\n")
 			}
 		}
 		catch {
 			case npe: NullPointerException =>
-				println("Diga <sim>")
-				println("-----------------------------------------------------------------------------------------------------------")
+				println("Diga <sim>"+ "\n")
 				lerNumeroDeJogadores
 		}
 	}
@@ -386,7 +396,7 @@ object Application {
 					println("O(s) jogadore(s) que joga(m) antes do computador são:\n")
 					apostadores.foreach(jogador => println("-> Jogador "+jogador))
 					val input = readLine("\nInforme sua(s) aposta(s) no formato <a1,a2,..,ai>, começando com o jogador de número mais baixo: \nR: ")
-					println("***********************************************************************************************************")
+					print("\n")
 					input.split(",").length match {
 						case x if x == apostadores.size =>
 							val listaDeApostas = input.split(",").toList.map(x => x.toInt)
@@ -398,26 +408,22 @@ object Application {
 										case y if y == listaDeApostas.size =>
 											listaDeApostas
 										case _ =>
-											println("Não são aceitas apostas repetidas, vamos denovo")
-											println("***********************************************************************************************************")
+											println("Não são aceitas apostas repetidas, vamos denovo"+ "\n")
 											lerApostasDeCadaJogador(jogadores, primeiroJogador)
 									}
 							}
 						case _ =>
-							println("Os dados inseridos estavam incorretos, vamos denovo")
-							println("***********************************************************************************************************")
+							println("Os dados inseridos estavam incorretos, vamos denovo"+ "\n")
 							lerApostasDeCadaJogador(jogadores, primeiroJogador)
 					}
 			}
 		}
 		catch {
 			case nfe: NumberFormatException =>
-				println("Você deve inserir um número")
-				println("-----------------------------------------------------------------------------------------------------------")
+				println("Você deve inserir um número"+ "\n")
 				lerApostasDeCadaJogador(jogadores, primeiroJogador)
 			case npe: NullPointerException =>
-				println("Você deve inserir um número")
-				println("-----------------------------------------------------------------------------------------------------------")
+				println("Você deve inserir um número"+ "\n")
 				lerApostasDeCadaJogador(jogadores, primeiroJogador)
 		}
 	}
@@ -425,26 +431,23 @@ object Application {
 	// Lêio do console o número de jogadores que irão jogar
 	def lerNumeroDeJogadores: Int = {
 		try {
-			println("***********************************************************************************************************")
 			val input = readLine("Informe o número de jogadores: \tR: ")
+			print("\n")
 			println("***********************************************************************************************************")
 			input.toInt match {
 				case x if x > 0 =>
 					input.toInt
 				case _ =>
-					println("Você deve inserir um numero positivo positivo")
-					println("***********************************************************************************************************")
+					println("Você deve inserir um numero positivo positivo"+ "\n")
 					lerNumeroDeJogadores
 			}
 		}
 		catch {
 			case nfe: NumberFormatException =>
-				println("Você deve inserir um número")
-				println("***********************************************************************************************************")
+				println("Você deve inserir um número"+ "\n")
 				lerNumeroDeJogadores
 			case npe: NullPointerException =>
-				println("Você deve inserir um número")
-				println("***********************************************************************************************************")
+				println("Você deve inserir um número"+ "\n")
 				lerNumeroDeJogadores
 		}
 	}
