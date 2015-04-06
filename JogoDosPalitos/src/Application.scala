@@ -1,10 +1,10 @@
 
 import scala.util.Random
 
-
 case class Jogador(palitos : Int, ID : String)
 
 object Application {
+
 	def main(args: Array[String])
 	{
 		// SEMPRE sou o jogador número 1
@@ -38,7 +38,20 @@ object Application {
 					case _ =>
 						jogar()
 				}
-
+				// Depois de jogar eu pergunto se alguem acertou o numero total de palitos jogados
+				val ganhadorDaRodada = perguntarQuemAcertou(numeroDeJogadores)
+				ganhadorDaRodada.toInt match
+				{
+					// Caso ninguem tenha ganho a rodada (ganhador = jogador 0), começamos outra rodada sem modificar o número de palitos
+					case 0 =>
+						começarRodada(jogadores, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1, numero+1 )
+					// Caso alguem tenha ganho, retiro um palito do ganhador e verifico se alguem ficou com 0 palitos
+					case _ =>
+						// Retiro um palitos do jogador que ganhou e se ele ficou com 0 palitos também removidos ele da lista de jogadores
+						val jogadoresComPalitosAtualizados = retirarPalito(jogadores, ganhadorDaRodada)
+						// Agora que a lista de jogadores e o número de palitos de cada jogador atualizados, começo uma nova rodada
+						começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1, numero+1 )
+				}
 
 				// Quando jogo primeiro não preciso esperar as informações sobre as apostas dos outros jogadores
 				def jogarPrimeiro(): Unit =
@@ -50,8 +63,6 @@ object Application {
 					dizer("Minha aposta é: "+ minhaAposta + "\n")
 					perguntarAteSim("Posso mostrar minha jogada? (sim/não) R: ")
 					dizer("Minha jogada é: " + minhaJogada + "\n")
-					val ganhadorDaRodada = perguntarQuemAcertou(numeroDeJogadores)
-					finalizarRodada(ganhadorDaRodada)
 				}
 
 				// Se eu não for o primeiro a jogar, primeiro preciso das informações sobre as apostas dos outros jogadores
@@ -59,38 +70,12 @@ object Application {
 				def jogar(): Unit =
 				{
 					val apostas = lerApostasDeCadaJogador(jogadores, primeiroJogador)
-					apostas.size match
-					{
-						case tamanho if tamanho > 0 =>
-							val minhaJogada = jogadaRandomica( jogadores.head.palitos )
-							val minhaAposta = decidirAposta(jogadores, apostas, minhaJogada)
-							perguntarAteSim("Ja posso mostrar minha aposta? (sim/não) R:")
-							dizer("Minha aposta é: "+ minhaAposta + "\n")
-							perguntarAteSim("Posso mostrar minha jogada? (sim/não) R: ")
-							dizer("Minha jogada é: " + minhaJogada + "\n")
-							val ganhadorDaRodada = perguntarQuemAcertou(numeroDeJogadores)
-							finalizarRodada(ganhadorDaRodada)
-						case _ =>
-							// Nunca deve ocorrer
-							println( "Algo deu muito errado!")
-					}
-				}
-				// Verifica se alguem ganhou a rodada, se alguem ganhou então esse jogadore perde um palito e outra
-				// rodada é iniciada
-				def finalizarRodada(ganhadorDaRodada : String) : Unit=
-				{
-					ganhadorDaRodada.toInt match
-					{
-						// Caso ninguem tenha ganho a rodada (ganhador = jogador 0), começamos outra rodada sem modificar o número de palitos
-						case 0 =>
-							começarRodada(jogadores, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1, numero+1 )
-						// Caso alguem tenha ganho, retiro um palito do ganhador e verifico se alguem ficou com 0 palitos
-						case _ =>
-							// Retiro um palitos do jogador que ganhou e se ele ficou com 0 palitos também removidos ele da lista de jogadores
-							val jogadoresComPalitosAtualizados = retirarPalito(jogadores, ganhadorDaRodada)
-							// Agora que a lista de jogadores e o número de palitos de cada jogador atualizados, começo uma nova rodada
-							começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1, numero+1 )
-					}
+					val minhaJogada = jogadaRandomica( jogadores.head.palitos )
+					val minhaAposta = decidirAposta(jogadores, apostas, minhaJogada)
+					perguntarAteSim("Ja posso mostrar minha aposta? (sim/não) R:")
+					dizer("Minha aposta é: "+ minhaAposta + "\n")
+					perguntarAteSim("Posso mostrar minha jogada? (sim/não) R: ")
+					dizer("Minha jogada é: " + minhaJogada + "\n")
 				}
 		}
 	}
