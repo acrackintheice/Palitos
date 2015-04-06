@@ -3,16 +3,14 @@ import scala.util.Random
 
 object Application {
 	def main(args: Array[String]) {
-		println("\n\n***********************************************************************************************************")
-
 		// SEMPRE sou o jogador número 1
 		val numeroDeJogadores = lerNumeroDeJogadores
 		// Começo a primeira rodada
-		começarRodada(criarJogadores(3,numeroDeJogadores), decidirQuemJogaPrimeiro(numeroDeJogadores))
+		começarRodada(criarJogadores(3,numeroDeJogadores), decidirQuemJogaPrimeiro(numeroDeJogadores),1)
 	}
 
 	// Começo uma nova rodada do jogo
-	def começarRodada(jogadores : List[Jogador], primeiroJogador : Int): Unit = {
+	def começarRodada(jogadores : List[Jogador], primeiroJogador : Int, numero : Int): Unit = {
 		jogadores.size match
 		{
 			case 1 =>
@@ -22,7 +20,12 @@ object Application {
 				println("      #################")
 			case _ =>
 				val numeroDeJogadores = jogadores.size
-				dizerInformacoesSobreARodada()
+				println("*******************************")
+				println("   Começando a rodada "+numero)
+				println("*******************************\n")
+				println("Status dos jogadores:")
+				jogadores.foreach( jogador => println("Jogador "+ jogador.ID + " => "+jogador.palitos+" palitos"))
+				println("\nPrimeiro a jogar => Jogador " + primeiroJogador + "\n")
 				primeiroJogador match
 				{
 					case 1 =>
@@ -42,20 +45,7 @@ object Application {
 					esperarFimDaRodada()
 					dizerJogada(minhaJogada)
 					val ganhadorDaRodada = perguntarQuemAcertou(numeroDeJogadores)
-					ganhadorDaRodada match
-					{
-						case 0 =>
-							começarRodada(jogadores, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
-						case _ =>
-							val jogadoresComPalitosAtualizados = retirarPalito(jogadores, ganhadorDaRodada)
-							verificarSeAlguemFoiEliminado(jogadoresComPalitosAtualizados) match
-							{
-								case -1 =>
-									começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
-								case x =>
-									começarRodada(jogadoresComPalitosAtualizados.take(x) ++ jogadoresComPalitosAtualizados.drop(x+1), if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
-							}
-					}
+					finalizarRodada(ganhadorDaRodada)
 				}
 
 				// Se eu não for o primeiro a jogar, primeiro preciso das informações sobre as apostas dos outros jogadores
@@ -72,31 +62,28 @@ object Application {
 							esperarFimDaRodada()
 							dizerJogada(minhaJogada)
 							val ganhadorDaRodada = perguntarQuemAcertou(numeroDeJogadores)
-							ganhadorDaRodada match
-							{
-								case 0 =>
-									começarRodada(jogadores, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
-								case _ =>
-									val jogadoresComPalitosAtualizados = retirarPalito(jogadores, ganhadorDaRodada)
-									verificarSeAlguemFoiEliminado(jogadoresComPalitosAtualizados) match
-									{
-										case -1 =>
-											começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
-										case x =>
-											começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1 )
-									}
-							}
+							finalizarRodada(ganhadorDaRodada)
 						case _ =>
 							println( "Algo deu muito errado!")
 					}
 				}
-				def dizerInformacoesSobreARodada(): Unit =
-				{
-					println("Começando uma nova rodada                                            \n")
-					println("Status dos jogadores:")
-					jogadores.foreach( jogador => println("Jogador "+ jogador.ID + " => "+jogador.palitos+" palitos"))
-					println("\nPrimeiro a jogar => Jogador " + primeiroJogador)
-					println("***********************************************************************************************************")
+				// Verifica se alguem ganhou a rodada, se alguem ganhou então esse jogadore perde um palito e outra
+				// rodada é iniciada
+				def finalizarRodada(ganhadorDaRodada : Int) : Unit= {
+					ganhadorDaRodada match
+					{
+						case 0 =>
+							começarRodada(jogadores, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1, numero+1 )
+						case _ =>
+							val jogadoresComPalitosAtualizados = retirarPalito(jogadores, ganhadorDaRodada)
+							verificarSeAlguemFoiEliminado(jogadoresComPalitosAtualizados) match
+							{
+								case -1 =>
+									começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1, numero+1 )
+								case x =>
+									começarRodada(jogadoresComPalitosAtualizados.take(x) ++ jogadoresComPalitosAtualizados.drop(x+1), if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1,numero+1 )
+							}
+					}
 				}
 		}
 	}
@@ -172,7 +159,6 @@ object Application {
 					case false =>
 						// Quando não blefo faço uma jogada randomica
 						apostaRandomica( jogadores, minhaJogada, apostasDosOutros)
-
 				}
 			case 0 =>
 				// Se eu for o primeiro a apostar faço uma aposta randomica
@@ -277,12 +263,12 @@ object Application {
 			var resposta = "nao"
 			while( resposta != "sim"){
 				resposta = readLine("Nesta rodada eu sou o primeiro a jogar, todos já fizeram suas jogadas? Posso começar a rodada? \tR: ")
-				print("\n")
 			}
+			print("\n")
 		}
 		catch {
 			case npe: NullPointerException =>
-				println("Diga <sim>"+ "\n")
+				println("Diga <sim>")
 				lerNumeroDeJogadores
 		}
 	}
@@ -292,21 +278,22 @@ object Application {
 		try {
 			val input = readLine("Se alguem acertou o número de palitos informe o número desse jogador. Se ninguem acertou digite 0: \tR: ")
 			print("\n")
-			println("*********************************************************************************************************** ")
+			println("O jogador "+input+" ganhou esta rodada!")
+			print("\n")
 			input.toInt match {
 				case x if x >= 0 | x <= numeroDeJogadores =>
 					input.toInt
 				case _ =>
-					println("Você deve inserir um numero positivo positivo"+ "\n")
+					println("Você deve inserir um numero positivo positivo")
 					perguntarQuemAcertou(numeroDeJogadores)
 			}
 		}
 		catch {
 			case nfe: NumberFormatException =>
-				println("Você deve inserir um número"+ "\n")
+				println("Você deve inserir um número")
 				perguntarQuemAcertou(numeroDeJogadores)
 			case npe: NullPointerException =>
-				println("Você deve inserir um número"+ "\n")
+				println("Você deve inserir um número")
 				perguntarQuemAcertou(numeroDeJogadores)
 		}
 	}
@@ -327,12 +314,11 @@ object Application {
 			var resposta = "nao"
 			while( resposta != "sim"){
 				resposta = readLine("Posso mostrar minha aposta? \tR: ")
-				print("\n")
 			}
 		}
 		catch {
 			case npe: NullPointerException =>
-				println("Diga <sim>"+ "\n")
+				println("Diga <sim>")
 				lerNumeroDeJogadores
 		}
 	}
@@ -343,25 +329,14 @@ object Application {
 			var resposta = "nao"
 			while( resposta != "sim"){
 				resposta = readLine("Posso mostrar minha jogada? \tR: ")
-				print("\n")
 			}
 		}
 		catch {
 			case npe: NullPointerException =>
-				println("Diga <sim>"+ "\n")
+				println("Diga <sim>")
 				lerNumeroDeJogadores
 		}
 	}
-
-	// Cria uma lista com com uma entrada pra cada jogador com valor 3, que representa o número inicial de palitos
-	def criarJogadores(numeroDePalitos : Int, numeroDeJogadores: Int, index : Int = 0, listaDeJogadores: List[Jogador] = List()): List[Jogador] = {
-		index match
-		{
-			case x if x >= numeroDeJogadores => listaDeJogadores
-			case _ => criarJogadores(numeroDePalitos, numeroDeJogadores, index+1, listaDeJogadores :+ new Jogador(numeroDePalitos,(index+1).toString))
-		}
-	}
-
 	// Gera um número random entre 1 e numeroDeJogadores
 	def decidirQuemJogaPrimeiro(numeroDeJogadores: Int): Int = {
 		val rand = new Random
@@ -404,23 +379,32 @@ object Application {
 										case y if y == listaDeApostas.size =>
 											listaDeApostas
 										case _ =>
-											println("Não são aceitas apostas repetidas, vamos denovo"+ "\n")
+											println("Não são aceitas apostas repetidas, vamos denovo")
 											lerApostasDeCadaJogador(jogadores, primeiroJogador)
 									}
 							}
 						case _ =>
-							println("Os dados inseridos estavam incorretos, vamos denovo"+ "\n")
+							println("Os dados inseridos estavam incorretos, vamos denovo")
 							lerApostasDeCadaJogador(jogadores, primeiroJogador)
 					}
 			}
 		}
 		catch {
 			case nfe: NumberFormatException =>
-				println("Você deve inserir um número"+ "\n")
+				println("Você deve inserir um número")
 				lerApostasDeCadaJogador(jogadores, primeiroJogador)
 			case npe: NullPointerException =>
-				println("Você deve inserir um número"+ "\n")
+				println("Você deve inserir um número")
 				lerApostasDeCadaJogador(jogadores, primeiroJogador)
+		}
+	}
+
+	// Cria uma lista com com uma entrada pra cada jogador com valor 3, que representa o número inicial de palitos
+	def criarJogadores(numeroDePalitos : Int, numeroDeJogadores: Int, index : Int = 0, listaDeJogadores: List[Jogador] = List()): List[Jogador] = {
+		index match
+		{
+			case x if x >= numeroDeJogadores => listaDeJogadores
+			case _ => criarJogadores(numeroDePalitos, numeroDeJogadores, index+1, listaDeJogadores :+ new Jogador(numeroDePalitos,(index+1).toString))
 		}
 	}
 
@@ -429,21 +413,20 @@ object Application {
 		try {
 			val input = readLine("Informe o número de jogadores: \tR: ")
 			print("\n")
-			println("***********************************************************************************************************")
 			input.toInt match {
 				case x if x > 0 =>
 					input.toInt
 				case _ =>
-					println("Você deve inserir um numero positivo positivo"+ "\n")
+					println("Você deve inserir um numero positivo positivo")
 					lerNumeroDeJogadores
 			}
 		}
 		catch {
 			case nfe: NumberFormatException =>
-				println("Você deve inserir um número"+ "\n")
+				println("Você deve inserir um número")
 				lerNumeroDeJogadores
 			case npe: NullPointerException =>
-				println("Você deve inserir um número"+ "\n")
+				println("Você deve inserir um número")
 				lerNumeroDeJogadores
 		}
 	}
