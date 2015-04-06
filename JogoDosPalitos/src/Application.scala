@@ -1,5 +1,6 @@
 
 import scala.util.Random
+import scala.io.StdIn.readLine
 
 case class Jogador(palitos : Int, ID : String)
 
@@ -16,6 +17,31 @@ object Application {
 	// Começo uma nova rodada do jogo
 	def começarRodada(jogadores : List[Jogador], primeiroJogador : Int, numero : Int): Unit =
 	{
+		// Quando jogo primeiro não preciso esperar as informações sobre as apostas dos outros jogadores
+		def jogarPrimeiro(): Unit =
+		{
+			val minhaJogada = jogadaRandomica( jogadores.head.palitos)
+			val minhaAposta = decidirAposta(jogadores, List(), minhaJogada)
+			perguntarAteSim("Nesta rodada eu sou o primeiro a jogar, todos já fizeram suas jogadas? Posso começar a rodada? (sim/não) R: ")
+			perguntarAteSim("Ja posso mostrar minha aposta? (sim/não) R:")
+			dizer("Minha aposta é: "+ minhaAposta + "\n")
+			perguntarAteSim("Posso mostrar minha jogada? (sim/não) R: ")
+			dizer("Minha jogada é: " + minhaJogada + "\n")
+		}
+
+		// Se eu não for o primeiro a jogar, primeiro preciso das informações sobre as apostas dos outros jogadores
+		// pra então fazer a minha aposta
+		def jogar(): Unit =
+		{
+			val apostas = lerApostasDeCadaJogador(jogadores, primeiroJogador)
+			val minhaJogada = jogadaRandomica( jogadores.head.palitos )
+			val minhaAposta = decidirAposta(jogadores, apostas, minhaJogada)
+			perguntarAteSim("Ja posso mostrar minha aposta? (sim/não) R:")
+			dizer("Minha aposta é: "+ minhaAposta + "\n")
+			perguntarAteSim("Posso mostrar minha jogada? (sim/não) R: ")
+			dizer("Minha jogada é: " + minhaJogada + "\n")
+		}
+
 		jogadores.size match
 		{
 			case 1 =>
@@ -51,31 +77,6 @@ object Application {
 						val jogadoresComPalitosAtualizados = retirarPalito(jogadores, ganhadorDaRodada)
 						// Agora que a lista de jogadores e o número de palitos de cada jogador atualizados, começo uma nova rodada
 						começarRodada(jogadoresComPalitosAtualizados, if (primeiroJogador < numeroDeJogadores) primeiroJogador+1 else 1, numero+1 )
-				}
-
-				// Quando jogo primeiro não preciso esperar as informações sobre as apostas dos outros jogadores
-				def jogarPrimeiro(): Unit =
-				{
-					val minhaJogada = jogadaRandomica( jogadores.head.palitos)
-					val minhaAposta = decidirAposta(jogadores, List(), minhaJogada)
-					perguntarAteSim("Nesta rodada eu sou o primeiro a jogar, todos já fizeram suas jogadas? Posso começar a rodada? (sim/não) R: ")
-					perguntarAteSim("Ja posso mostrar minha aposta? (sim/não) R:")
-					dizer("Minha aposta é: "+ minhaAposta + "\n")
-					perguntarAteSim("Posso mostrar minha jogada? (sim/não) R: ")
-					dizer("Minha jogada é: " + minhaJogada + "\n")
-				}
-
-				// Se eu não for o primeiro a jogar, primeiro preciso das informações sobre as apostas dos outros jogadores
-				// pra então fazer a minha aposta
-				def jogar(): Unit =
-				{
-					val apostas = lerApostasDeCadaJogador(jogadores, primeiroJogador)
-					val minhaJogada = jogadaRandomica( jogadores.head.palitos )
-					val minhaAposta = decidirAposta(jogadores, apostas, minhaJogada)
-					perguntarAteSim("Ja posso mostrar minha aposta? (sim/não) R:")
-					dizer("Minha aposta é: "+ minhaAposta + "\n")
-					perguntarAteSim("Posso mostrar minha jogada? (sim/não) R: ")
-					dizer("Minha jogada é: " + minhaJogada + "\n")
 				}
 		}
 	}
