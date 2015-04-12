@@ -84,9 +84,13 @@ object Application {
 				// Se eu não for o primeiro a apostar então:
 				val rand: Random = new Random()
 				// quanto mais jogadores apostarem depois de mim, maior será a minha chance de blefar
-				val chanceDeBlefe: Double = apostasDosOutros.size.toDouble / jogadores.size.toDouble - 1
-				rand.nextDouble > chanceDeBlefe match {
+				val chanceDeBlefe: Double = apostasDosOutros.size.toDouble / jogadores.size.toDouble
+				val random = rand.nextDouble
+				// Comparo se a chance de blefe é menor que um número randomico
+				 random < chanceDeBlefe match {
+					// 	Se sim
 					case true =>
+						// Definindo algumas funções que serão usadas nesse case
 						def blefarPraCima: Int = {
 							val minhaAposta = (gerarPorcentagemMaiorQue(0.7) * totalDePalitos).toInt
 							apostasDosOutros.contains(minhaAposta) match {
@@ -121,27 +125,31 @@ object Application {
 									blefarPraBaixo
 							}
 						}
+						// Fim das definições
+
+						// Se minha jogada for:
 						minhaJogada match {
 							case 0 =>
-								// Se eu joguei 0 blefo, fingindo que joguei bastante
+								// Se for 0, blefo fingindo que joguei bastante
 								blefarPraCima
 							case x1 if x1 > (meusPalitos * 0.7).toInt =>
-								// Se joguei mais que 70% dos meus palitos, vou fingir que joguei pouco
+								// Se for mais que 70% dos meus palitos, vou fingir que joguei pouco
 								blefarPraBaixo
 							case x1 if x1 < (meusPalitos * 0.3).toInt =>
-								// Se joguei menos que 30% dos meus palitos, vou fingir que joguei bastante
+								// Se for menos que 30% dos meus palitos, vou fingir que joguei bastante
 								(gerarPorcentagemMaiorQue(0.70) * totalDePalitos).toInt
 							case _ =>
-								// Caso tenha jogado um número de palitos entre 30% e 70% dos meus palitos, posso fingir que joguei pouco ou bastante
+								// Caso seja um número de palitos entre 30% e 70% dos meus palitos, posso fingir que joguei pouco ou bastante
 								blefarPraCimaOuPraBaixo
 						}
+					// Se não
 					case false =>
-						// Quando não blefo faço uma jogada randomica
-						apostaRandomica(jogadores, minhaJogada, apostasDosOutros, 1)
+						// Não blefo e faço uma aposta semi-randomica
+						apostaRandomica(jogadores, minhaJogada, apostasDosOutros)
 				}
 			case 0 =>
-				// Se eu for o primeiro a apostar faço uma aposta randomica
-				apostaRandomica(jogadores, minhaJogada, apostasDosOutros, 1)
+				// Se eu for o primeiro a apostar faço uma aposta semi-randomica
+				apostaRandomica(jogadores, minhaJogada, apostasDosOutros)
 			case _ =>
 				// Se por algum motivo for outra coisa ocorreu um erro então retorno -1
 				-1
@@ -161,7 +169,7 @@ object Application {
 	}
 
 	// Faço uma aposta randomica mas que possui alguma lógica. OBS: Mesmo sendo randômica a jogada sempre é valida ... não apostaria 0 sendo que joguei 1 palito
-	def apostaRandomica(jogadores: List[Jogador], minhaJogada: Int, apostasDosOutros: List[Int], tentativas: Int): Int = {
+	def apostaRandomica(jogadores: List[Jogador], minhaJogada: Int, apostasDosOutros: List[Int], tentativas: Int = 1): Int = {
 		val rand = new Random
 		// Total de palitos dos outros jogadores + minha jogada
 		val totalDePalitosDosOutros: Int = palitosDosJogadores(jogadores.tail).sum
@@ -170,11 +178,11 @@ object Application {
 			// Caso o total de palitos seja par e maior que 9
 			case x if isEven(x) && totalDePalitosDosOutros > 9 =>
 				// A minha aposta será a metade do número total de palitos +/- 2
-				(totalDePalitosDosOutros / 2 + rand.nextInt(5) - 2) + 1
+				(totalDePalitosDosOutros / 2) + (rand.nextInt(5) - 2) + 1
 			// Caso o total de palitos seja par, maior ou igual a 3 e menor ou igual a 9
 			case x if isEven(x) && totalDePalitosDosOutros >= 3 && totalDePalitosDosOutros <= 9 =>
 				// A minha aposta será a metade do número total de palitos +/- 1
-				(totalDePalitosDosOutros / 2 + rand.nextInt(3) - 1) + 1
+				(totalDePalitosDosOutros / 2) + (rand.nextInt(3) - 1) + 1
 			// Caso o total de palitos seja par e menor que 3
 			case x if isEven(x) && totalDePalitosDosOutros < 3 =>
 				// A minha aposta será totalmente randomica
@@ -182,11 +190,11 @@ object Application {
 			// Caso o total de palitos seja impar e maior que 9
 			case x if isOdd(x) && totalDePalitosDosOutros > 9 =>
 				// A minha aposta será a metade do número total de palitos +/- 2
-				totalDePalitosDosOutros / 2 + rand.nextInt(5) - 2
+				(totalDePalitosDosOutros / 2) + (rand.nextInt(5) - 2)
 			// Caso o total de palitos seja impar, maior ou igual a 3 e menor ou igual a 9
 			case x if isOdd(x) && totalDePalitosDosOutros >= 3 && totalDePalitosDosOutros <= 9 =>
 				// A minha aposta será a metade do número total de palitos +/- 2
-				totalDePalitosDosOutros / 2 + rand.nextInt(3) - 1
+				(totalDePalitosDosOutros / 2) + (rand.nextInt(3) - 1)
 			// Caso o total de palitos seja impar e menor que 3
 			case x if isOdd(x) && totalDePalitosDosOutros < 3 =>
 				// A minha aposta será totalmente randomica
